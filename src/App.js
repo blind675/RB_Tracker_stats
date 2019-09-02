@@ -25,7 +25,8 @@ const actionsOptions = [
 	{ label: 'Bike / e-Bike', value: 'bike' },
 	{ label: 'Scooter', value: 'scooter' },
 	{ label: 'e-Scooter', value: 'e-scooter' },
-	{ label: 'Reactive Board', value: 'rb' },
+	{ label: 'e-Board', value: 'rb' },
+	{ label: 'e-Board Bad Road', value: 'rb-bad' },
 ];
 
 export class App extends Component {
@@ -126,6 +127,10 @@ export class App extends Component {
 
 				case 'rn':
 					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/grn-diamond-lv.png';
+					break;
+
+				case 'rb-bad':
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/red-diamond-lv.png';
 					break;
 
 				default:
