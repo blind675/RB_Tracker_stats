@@ -7,10 +7,11 @@
     "bootstrap": "^4.3.1",
     "firebase": "^6.3.4",
     "gh-pages": "2.0.1",
-    "google-maps-react": "^2.0.2",
     "react": "^16.8.6",
     "react-bootstrap": "^1.0.0-beta.10",
+    "react-csv": "^1.1.1",
     "react-dom": "^16.8.6",
+    "react-google-maps": "^9.4.5",
     "react-scripts": "3.0.1",
     "react-select": "^3.0.4"
   },

@@ -1,33 +1,22 @@
 import React, { Component } from 'react';
-// import './App.css';
+import './App.css';
 import Button from 'react-bootstrap/Button';
-import { Map, Marker, GoogleApiWrapper } from 'google-maps-react';
+import { withScriptjs, withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
+import { CSVLink } from 'react-csv';
 
 import Select from 'react-select';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import * as firebase from 'firebase';
+import { firebaseConfig, actionsOptions, csvHeader } from './utils/constants';
 
-const firebaseConfig = {
-	apiKey: 'AIzaSyCzenI1WpO2JBbltc3ARFKTCJyUumY-zkk',
-	authDomain: 'rbtrack-ab0e9.firebaseapp.com',
-	databaseURL: 'https://rbtrack-ab0e9.firebaseio.com',
-	projectId: 'rbtrack-ab0e9',
-	storageBucket: 'rbtrack-ab0e9.appspot.com',
-	messagingSenderId: '381452575978',
-	appId: '1:381452575978:web:9999b9c4b6d38967',
-};
-
-const actionsOptions = [
-	{ label: '', value: null },
-	{ label: 'Walk', value: 'walk' },
-	{ label: 'Stay', value: 'stay' },
-	{ label: 'Bike / e-Bike', value: 'bike' },
-	{ label: 'Scooter', value: 'scooter' },
-	{ label: 'e-Scooter', value: 'e-scooter' },
-	{ label: 'e-Board', value: 'rb' },
-	{ label: 'e-Board Bad Road', value: 'rb-bad' },
-];
+const MyMapComponent = withScriptjs(
+	withGoogleMap(props =>
+		<GoogleMap defaultZoom={16} defaultCenter={{ lat: 45.757855, lng: 21.228995 }}>
+			{props.isMarkerShown && props.markers}
+		</GoogleMap>
+	)
+);
 
 export class App extends Component {
 	constructor(props) {
@@ -37,13 +26,20 @@ export class App extends Component {
 			loading: false,
 			selectedPoint: null,
 			selectedActionAtPoint: null,
+			csvData: null
 		};
 
+		this.csvFileName = 'RBStats.csv';
 		this._updatePoint = this._updatePoint.bind(this);
 	}
 
 	componentDidMount() {
 		this.db = firebase.initializeApp(firebaseConfig);
+		let current_datetime = new Date();
+		let formatted_date =
+			current_datetime.getDate() + '-' + (current_datetime.getMonth() + 1) + '-' + current_datetime.getFullYear();
+
+		this.csvFileName = 'RBStats-' + formatted_date + '.csv';
 
 		this._reloadFirebaseData();
 	}
@@ -66,6 +62,8 @@ export class App extends Component {
 					loading: false,
 					locations: data,
 				});
+
+				this._createCSVData(data);
 			})
 			.catch(error => {
 				this.setState({
@@ -77,27 +75,72 @@ export class App extends Component {
 			});
 	}
 
+	_createCSVData(data) {
+		const newCSVData = [];
+
+		data.forEach(location => {
+			newCSVData.push({
+				x1: String(location.accelerometerData[0].x),
+				y1: String(location.accelerometerData[0].y),
+				z1: String(location.accelerometerData[0].z),
+				x2: String(location.accelerometerData[1].x),
+				y2: String(location.accelerometerData[1].y),
+				z2: String(location.accelerometerData[1].z),
+				x3: String(location.accelerometerData[2].x),
+				y3: String(location.accelerometerData[2].y),
+				z3: String(location.accelerometerData[2].z),
+				x4: String(location.accelerometerData[3].x),
+				y4: String(location.accelerometerData[3].y),
+				z4: String(location.accelerometerData[3].z),
+				x5: String(location.accelerometerData[4].x),
+				y5: String(location.accelerometerData[4].y),
+				z5: String(location.accelerometerData[4].z),
+				altitude: String(location.altitude),
+				accuracy: String(location.accuracy),
+				manufacturer: location.manufacturer,
+				label: location.label,
+			});
+		});
+
+		console.log('CSV DATA:', newCSVData);
+
+		this.setState({
+			csvData: newCSVData,
+		});
+	}
+
 	_updatePoint() {
 		if (this.state.selectedActionAtPoint) {
-			console.log(' selected action points:', this.state.selectedActionAtPoint);
-			console.log(' update point:', this.state.selectedPoint);
-
 			const firebaseRef = this.db.firestore().collection('geo_points').doc(this.state.selectedPoint.id);
-
-			console.log(' firebaseRef:', firebaseRef);
 
 			const newObject = {
 				...this.state.selectedPoint,
 				label: this.state.selectedActionAtPoint.value,
 			};
 
-			console.log(' new object:', newObject);
-
 			firebaseRef.update(newObject);
-			
 		} else {
 			alert(' Please select an action did at a location. ');
 		}
+	}
+
+	_renderDownloadCSVButton() {
+		if (this.state.csvData) {
+			return (
+				<div id="downloadDiv">
+					<CSVLink style={{ margin: 12 }} data={this.state.csvData} filename={this.csvFileName} headers={csvHeader}>
+						Download .CSV
+					</CSVLink>
+					<p >
+						{
+							'After that please upload to Google Drive.'
+						}
+					</p>
+				</div>
+			);
+		}
+
+		return null;
 	}
 
 	_renderPoints() {
@@ -155,37 +198,24 @@ export class App extends Component {
 		});
 	}
 
-	_renderMap() {
-		if (this.state.locations.length !== 0) {
-			return (
-				<Map
-					google={this.props.google}
-					zoom={16}
-					style={mapStyles}
-					initialCenter={{ lat: 45.757855, lng: 21.228995 }}
-				>
-					{this._renderPoints()}
-				</Map>
-			);
-		}
-
-		return null;
-	}
-
 	_renderSelectedPoint() {
 		if (this.state.selectedPoint) {
 			if (this.state.selectedPoint.label) {
 				return (
-					<form>
-						<br />
+					<div
+						style={{
+							display: 'flex',
+							flex: 1,
+							flexDirection: 'column',
+							margin: 12,
+						}}
+					>
 						<label>
 							Latitude: {this.state.selectedPoint.latitude}{' '}
 						</label>
-						<br />
 						<label>
 							Longitude: {this.state.selectedPoint.longitude}{' '}
 						</label>
-						<br />
 						<label>
 							Accuracy: {this.state.selectedPoint.accuracy}{' '}
 						</label>
@@ -193,16 +223,13 @@ export class App extends Component {
 						<label>
 							UniqueId: {this.state.selectedPoint.uniqueId}{' '}
 						</label>
-						<br />
 						<label>
 							{`Manufacturer: ${this.state.selectedPoint.manufacturer}`}
 						</label>
-						<br />
 						<label>
-							{`Action did at location: ${this.state.selectedPoint.label}`}
+							Action did at location: <b>{this.state.selectedPoint.label}</b>
 						</label>
-						<br />
-					</form>
+					</div>
 				);
 			} else {
 				return (
@@ -211,6 +238,7 @@ export class App extends Component {
 							display: 'flex',
 							flex: 1,
 							flexDirection: 'column',
+							margin: 12,
 						}}
 					>
 						<label>
@@ -245,9 +273,10 @@ export class App extends Component {
 							style={{
 								hight: 60,
 								width: 200,
-								marginTop: 500,
 								display: 'flex',
 								flex: 1,
+								marginTop: 16,
+								marginBottom: 16,
 							}}
 						>
 							Update
@@ -262,56 +291,48 @@ export class App extends Component {
 
 	render() {
 		return (
-			<div style={{ display: 'flex' }}>
-				<div style={{ display: 'flex', flexDirection: 'column' }}>
-					<div
-						style={{
-							...mapStyles,
-							marginTop: 32,
-							marginLeft: 32,
-							display: 'flex',
-						}}
-					>
-						{this._renderMap()}
-					</div>
-					<div>
-						<Button
-							variant="primary"
-							disabled={this.state.loading}
-							onClick={() => {
-								this._reloadFirebaseData();
-							}}
-							style={{ margin: 40 }}
-						>
-							Reload
-						</Button>
+			<div id="mainDiv">
+				<div id="headerDiv" />
 
-						{this.state.loading ? 'loading...' : 'not loading'}
+				<div id="rowDiv">
+					<div id="mapDiv">
+						<MyMapComponent
+							isMarkerShown
+							googleMapURL="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places"
+							loadingElement={<div style={{ height: '100%' }} />}
+							containerElement={<div style={{ height: '100%' }} />}
+							mapElement={<div style={{ height: '100%' }} />}
+							markers={this._renderPoints()}
+						/>
+					</div>
+
+					<div id="statsDiv">
+						<h3 align="center"> Selected Point </h3>
+						{this._renderSelectedPoint()}
 					</div>
 				</div>
-				<div style={dataPartStyles}>
-					<h2 style={{ display: 'flex' }}>Selected Point</h2>
-					{this._renderSelectedPoint()}
+
+				<div id="reloadDiv">
+					<Button
+						variant="primary"
+						disabled={this.state.loading}
+						onClick={() => {
+							this._reloadFirebaseData();
+						}}
+						style={{ margin: 12 }}
+					>
+						Reload
+					</Button>
+					<label>
+						{this.state.loading ? 'loading...' : 'not loading'}
+					</label>
 				</div>
+
+				{this._renderDownloadCSVButton()}
 			</div>
 		);
 	}
 }
 
-const dataPartStyles = {
-	margin: 32,
-	border: '1px solid gray',
-	height: 900,
-	padding: 12,
-};
+export default App;
 
-const mapStyles = {
-	width: 800,
-	height: 500,
-	backgroundColor: 'blue',
-};
-
-export default GoogleApiWrapper({
-	apiKey: 'AIzaSyArAl-k3E70PTxcFnFhKdilCW37KckQHBM',
-	libraries: ['visualization'],
-})(App);
