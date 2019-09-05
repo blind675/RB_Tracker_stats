@@ -10,9 +10,11 @@ export const firebaseConfig = {
 
 export const actionsOptions = [
 	{ label: '', value: null },
-	{ label: 'Walk', value: 'walk' },
 	{ label: 'Stay', value: 'stay' },
-	{ label: 'Bike / e-Bike', value: 'bike' },
+	{ label: 'Walk', value: 'walk' },
+	{ label: 'Car', value: 'car' },
+	{ label: 'Bike', value: 'bike' },
+	{ label: 'e-Bike', value: 'e-bike' },
 	{ label: 'Scooter', value: 'scooter' },
 	{ label: 'e-Scooter', value: 'e-scooter' },
 	{ label: 'e-Board', value: 'rb' },
@@ -20,6 +22,7 @@ export const actionsOptions = [
 ];
 
 export const csvHeader = [
+	{ label: 'id', key: 'id' },
 	{ label: 'x1', key: 'x1' },
 	{ label: 'y1', key: 'y1' },
 	{ label: 'z1', key: 'z1' },
@@ -37,6 +40,5 @@ export const csvHeader = [
 	{ label: 'z5', key: 'z5' },
 	{ label: 'altitude', key: 'altitude' },
 	{ label: 'accuracy', key: 'accuracy' },
-	{ label: 'manufacturer', key: 'manufacturer' },
 	{ label: 'label', key: 'label' },
 ];

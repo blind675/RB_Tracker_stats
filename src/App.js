@@ -7,6 +7,9 @@ import { CSVLink } from 'react-csv';
 import Select from 'react-select';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+import { confirmAlert } from 'react-confirm-alert'; // Import
+import 'react-confirm-alert/src/react-confirm-alert.css';
+
 import * as firebase from 'firebase';
 import { firebaseConfig, actionsOptions, csvHeader } from './utils/constants';
 
@@ -24,13 +27,15 @@ export class App extends Component {
 		this.state = {
 			locations: [],
 			loading: false,
-			selectedPoint: null,
 			selectedActionAtPoint: null,
-			csvData: null
+			csvData: null,
+			drawMap: false,
+			selectedList: [],
 		};
 
 		this.csvFileName = 'RBStats.csv';
-		this._updatePoint = this._updatePoint.bind(this);
+		this._updatePoints = this._updatePoints.bind(this);
+		this._deletePoints = this._deletePoints.bind(this);
 	}
 
 	componentDidMount() {
@@ -61,6 +66,7 @@ export class App extends Component {
 				this.setState({
 					loading: false,
 					locations: data,
+					drawMap: true,
 				});
 
 				this._createCSVData(data);
@@ -69,6 +75,7 @@ export class App extends Component {
 				this.setState({
 					loading: false,
 					locations: [],
+					drawMap: true,
 				});
 
 				console.log('error:', error);
@@ -79,63 +86,160 @@ export class App extends Component {
 		const newCSVData = [];
 
 		data.forEach(location => {
-			newCSVData.push({
-				x1: String(location.accelerometerData[0].x),
-				y1: String(location.accelerometerData[0].y),
-				z1: String(location.accelerometerData[0].z),
-				x2: String(location.accelerometerData[1].x),
-				y2: String(location.accelerometerData[1].y),
-				z2: String(location.accelerometerData[1].z),
-				x3: String(location.accelerometerData[2].x),
-				y3: String(location.accelerometerData[2].y),
-				z3: String(location.accelerometerData[2].z),
-				x4: String(location.accelerometerData[3].x),
-				y4: String(location.accelerometerData[3].y),
-				z4: String(location.accelerometerData[3].z),
-				x5: String(location.accelerometerData[4].x),
-				y5: String(location.accelerometerData[4].y),
-				z5: String(location.accelerometerData[4].z),
-				altitude: String(location.altitude),
-				accuracy: String(location.accuracy),
-				manufacturer: location.manufacturer,
-				label: location.label,
-			});
+			if (location.label) {
+				newCSVData.push({
+					id: String(location.accelerometerData[0].id),
+					x1: String(location.accelerometerData[0].x),
+					y1: String(location.accelerometerData[0].y),
+					z1: String(location.accelerometerData[0].z),
+					x2: String(location.accelerometerData[1].x),
+					y2: String(location.accelerometerData[1].y),
+					z2: String(location.accelerometerData[1].z),
+					x3: String(location.accelerometerData[2].x),
+					y3: String(location.accelerometerData[2].y),
+					z3: String(location.accelerometerData[2].z),
+					x4: String(location.accelerometerData[3].x),
+					y4: String(location.accelerometerData[3].y),
+					z4: String(location.accelerometerData[3].z),
+					x5: String(location.accelerometerData[4].x),
+					y5: String(location.accelerometerData[4].y),
+					z5: String(location.accelerometerData[4].z),
+					altitude: String(location.altitude),
+					accuracy: String(location.accuracy),
+					label: location.label,
+				});
+			}
 		});
-
-		console.log('CSV DATA:', newCSVData);
 
 		this.setState({
 			csvData: newCSVData,
 		});
 	}
 
-	_updatePoint() {
+	_deletePoints() {
+		confirmAlert({
+			title: 'Are you sure?',
+			message:
+				'This will remove all the points that have been assigned labels. Please make sure you have downloaded a .cvs file before deleting points.',
+			buttons: [
+				{
+					label: 'Yes',
+					onClick: () => {
+						var promisesArray = [];
+
+						this.state.locations.forEach(location => {
+							if (location.label) {
+								const firebaseRef = this.db.firestore().collection('geo_points').doc(location.id);
+								promisesArray.push(firebaseRef.delete());
+							}
+						});
+
+						Promise.all(promisesArray).then(() => {
+							this.setState({
+								selectedList: [],
+								selectedActionAtPoint: null,
+								locations: [],
+							});
+
+							this._reloadFirebaseData();
+						});
+					},
+				},
+				{
+					label: 'No',
+				},
+			],
+		});
+	}
+
+	_updatePoints() {
 		if (this.state.selectedActionAtPoint) {
-			const firebaseRef = this.db.firestore().collection('geo_points').doc(this.state.selectedPoint.id);
+			this.setState({
+				loading: true,
+			});
 
-			const newObject = {
-				...this.state.selectedPoint,
-				label: this.state.selectedActionAtPoint.value,
-			};
+			var promisesArray = [];
+			this.state.selectedList.forEach(selectedLocationId => {
+				const location = this.state.locations.find(loc => loc.id === selectedLocationId);
 
-			firebaseRef.update(newObject);
+				const firebaseRef = this.db.firestore().collection('geo_points').doc(location.id);
+
+				const newObject = {
+					...location,
+					label: this.state.selectedActionAtPoint.value,
+				};
+
+				promisesArray.push(firebaseRef.update(newObject));
+			});
+
+			Promise.all(promisesArray).then(() => {
+				this.setState({
+					selectedList: [],
+					selectedActionAtPoint: null,
+					locations: [],
+				});
+
+				this._reloadFirebaseData();
+			});
 		} else {
 			alert(' Please select an action did at a location. ');
 		}
+	}
+
+	_selectDeselectMarker(location) {
+		const localLoc = this.state.locations.find(loc => loc.id === location.id);
+
+		var newSelectedArray = [];
+		if (localLoc.label) {
+			newSelectedArray.push(localLoc.id);
+		} else {
+			if (this.state.selectedList.includes(location.id)) {
+				// remove location.id from selected list
+				var index = this.state.selectedList.indexOf(location.id);
+				if (index > -1) {
+					this.state.selectedList.splice(index, 1);
+				}
+				newSelectedArray = this.state.selectedList;
+			} else {
+				this.state.selectedList.push(location.id);
+				newSelectedArray = this.state.selectedList;
+			}
+		}
+		this.setState({
+			drawMap: true,
+			selectedList: newSelectedArray,
+		});
 	}
 
 	_renderDownloadCSVButton() {
 		if (this.state.csvData) {
 			return (
 				<div id="downloadDiv">
-					<CSVLink style={{ margin: 12 }} data={this.state.csvData} filename={this.csvFileName} headers={csvHeader}>
+					<CSVLink
+						style={{ margin: 12 }}
+						data={this.state.csvData}
+						filename={this.csvFileName}
+						headers={csvHeader}
+					>
 						Download .CSV
 					</CSVLink>
-					<p >
-						{
-							'After that please upload to Google Drive.'
-						}
+					<p>
+						{'After the download please upload the file to Reactive Boards Google Drive.'}
 					</p>
+
+					<Button
+						variant="danger"
+						onClick={this._deletePoints}
+						style={{
+							hight: 60,
+							width: 200,
+							marginTop: 16,
+							marginBottom: 16,
+							marginRight: 32,
+						}}
+					>
+						Delete Points
+					</Button>
 				</div>
 			);
 		}
@@ -145,19 +249,27 @@ export class App extends Component {
 
 	_renderPoints() {
 		return this.state.locations.map(location => {
-			var iconURL = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+			var iconURL;
 
 			switch (location.label) {
-				case 'walk':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-blank-lv.png';
-					break;
-
 				case 'stay':
 					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-square-lv.png';
 					break;
 
+				case 'walk':
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-blank-lv.png';
+					break;
+
+				case 'car':
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-circle-lv.png';
+					break;
+
 				case 'bike':
 					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/purple-circle-lv.png';
+					break;
+
+				case 'e-bike':
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/purple-square-lv.png';
 					break;
 
 				case 'scooter':
@@ -177,17 +289,23 @@ export class App extends Component {
 					break;
 
 				default:
-					iconURL = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+					iconURL = null;
 					break;
+			}
+
+			if (iconURL === null) {
+				iconURL = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+
+				if (this.state.selectedList.includes(location.id)) {
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/orange-circle.png';
+				}
 			}
 
 			return (
 				<Marker
 					position={{ lat: location.latitude, lng: location.longitude }}
 					onClick={() => {
-						this.setState({
-							selectedPoint: location,
-						});
+						this._selectDeselectMarker(location);
 					}}
 					name={'Test'}
 					title={'Test marker'}
@@ -199,8 +317,10 @@ export class App extends Component {
 	}
 
 	_renderSelectedPoint() {
-		if (this.state.selectedPoint) {
-			if (this.state.selectedPoint.label) {
+		if (this.state.selectedList.length === 1) {
+			const location = this.state.locations.find(location => location.id === this.state.selectedList[0]);
+
+			if (location.label) {
 				return (
 					<div
 						style={{
@@ -211,23 +331,23 @@ export class App extends Component {
 						}}
 					>
 						<label>
-							Latitude: {this.state.selectedPoint.latitude}{' '}
+							Latitude: {location.latitude}{' '}
 						</label>
 						<label>
-							Longitude: {this.state.selectedPoint.longitude}{' '}
+							Longitude: {location.longitude}{' '}
 						</label>
 						<label>
-							Accuracy: {this.state.selectedPoint.accuracy}{' '}
+							Accuracy: {location.accuracy}{' '}
 						</label>
 						<br />
 						<label>
-							UniqueId: {this.state.selectedPoint.uniqueId}{' '}
+							UniqueId: {location.uniqueId}{' '}
 						</label>
 						<label>
-							{`Manufacturer: ${this.state.selectedPoint.manufacturer}`}
+							{`Manufacturer: ${location.manufacturer}`}
 						</label>
 						<label>
-							Action did at location: <b>{this.state.selectedPoint.label}</b>
+							Action did at location: <b>{location.label}</b>
 						</label>
 					</div>
 				);
@@ -242,20 +362,20 @@ export class App extends Component {
 						}}
 					>
 						<label>
-							Latitude: {this.state.selectedPoint.latitude}{' '}
+							Latitude: {location.latitude}{' '}
 						</label>
 						<label>
-							Longitude: {this.state.selectedPoint.longitude}{' '}
+							Longitude: {location.longitude}{' '}
 						</label>
 						<label>
-							Accuracy: {this.state.selectedPoint.accuracy}{' '}
+							Accuracy: {location.accuracy}{' '}
 						</label>
 						<br />
 						<label>
-							UniqueId: {this.state.selectedPoint.uniqueId}{' '}
+							UniqueId: {location.uniqueId}{' '}
 						</label>
 						<label>
-							{`Manufacturer: ${this.state.selectedPoint.manufacturer}`}
+							{`Manufacturer: ${location.manufacturer}`}
 						</label>
 						<label>Select action did at location : </label>
 						<Select
@@ -269,7 +389,7 @@ export class App extends Component {
 						/>
 						<Button
 							variant="primary"
-							onClick={this._updatePoint}
+							onClick={this._updatePoints}
 							style={{
 								hight: 60,
 								width: 200,
@@ -284,6 +404,62 @@ export class App extends Component {
 					</div>
 				);
 			}
+		} else if (this.state.selectedList.length > 1) {
+			return (
+				<div
+					style={{
+						display: 'flex',
+						flex: 1,
+						flexDirection: 'column',
+						margin: 12,
+					}}
+				>
+					<label>
+						Select {this.state.selectedList.length} points
+					</label>
+					<label>Select action did at locations : </label>
+					<Select
+						options={actionsOptions}
+						onChange={value => {
+							console.log('  value:', value);
+							this.setState({
+								selectedActionAtPoint: value,
+							});
+						}}
+					/>
+					<Button
+						variant="primary"
+						onClick={this._updatePoints}
+						style={{
+							hight: 60,
+							width: 200,
+							display: 'flex',
+							flex: 1,
+							marginTop: 16,
+							marginBottom: 16,
+						}}
+					>
+						Update All
+					</Button>
+				</div>
+			);
+		}
+
+		return null;
+	}
+
+	_renderMap() {
+		if (this.state.drawMap === true) {
+			return (
+				<MyMapComponent
+					isMarkerShown
+					googleMapURL="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places"
+					loadingElement={<div style={{ height: '100%' }} />}
+					containerElement={<div style={{ height: '100%' }} />}
+					mapElement={<div style={{ height: '100%' }} />}
+					markers={this._renderPoints()}
+				/>
+			);
 		}
 
 		return null;
@@ -296,14 +472,7 @@ export class App extends Component {
 
 				<div id="rowDiv">
 					<div id="mapDiv">
-						<MyMapComponent
-							isMarkerShown
-							googleMapURL="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places"
-							loadingElement={<div style={{ height: '100%' }} />}
-							containerElement={<div style={{ height: '100%' }} />}
-							mapElement={<div style={{ height: '100%' }} />}
-							markers={this._renderPoints()}
-						/>
+						{this._renderMap()}
 					</div>
 
 					<div id="statsDiv">
@@ -314,7 +483,7 @@ export class App extends Component {
 
 				<div id="reloadDiv">
 					<Button
-						variant="primary"
+						variant="secondary"
 						disabled={this.state.loading}
 						onClick={() => {
 							this._reloadFirebaseData();
@@ -335,4 +504,3 @@ export class App extends Component {
 }
 
 export default App;
-
