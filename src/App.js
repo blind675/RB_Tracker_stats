@@ -88,7 +88,7 @@ export class App extends Component {
 		data.forEach(location => {
 			if (location.label) {
 				newCSVData.push({
-					id: String(location.accelerometerData[0].id),
+					id: String(location.id),
 					x1: String(location.accelerometerData[0].x),
 					x2: String(location.accelerometerData[1].x),
 					x3: String(location.accelerometerData[2].x),
