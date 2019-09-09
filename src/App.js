@@ -86,7 +86,7 @@ export class App extends Component {
 		const newCSVData = [];
 
 		data.forEach(location => {
-			if (location.label) {
+			if (location.label && location.accelerometerData.length > 30 ) {
 				newCSVData.push({
 					id: String(location.id),
 					x1: String(location.accelerometerData[0].x),
@@ -188,16 +188,12 @@ export class App extends Component {
 
 			var promisesArray = [];
 			this.state.selectedList.forEach(selectedLocationId => {
-				const location = this.state.locations.find(loc => loc.id === selectedLocationId);
+				var location = this.state.locations.find(loc => loc.id === selectedLocationId);
+				location.label = this.state.selectedActionAtPoint.value;
 
 				const firebaseRef = this.db.firestore().collection('geo_points').doc(location.id);
 
-				const newObject = {
-					...location,
-					label: this.state.selectedActionAtPoint.value,
-				};
-
-				promisesArray.push(firebaseRef.update(newObject));
+				promisesArray.push(firebaseRef.update(location));
 			});
 
 			Promise.all(promisesArray).then(() => {
@@ -329,6 +325,10 @@ export class App extends Component {
 				}
 			}
 
+			if ( location.accelerometerData.length < 50 ) {
+				iconURL = 'http://maps.google.com/mapfiles/ms/icons/red-stars.png';
+			}
+
 			return (
 				<Marker
 					position={{ lat: location.latitude, lng: location.longitude }}
@@ -369,6 +369,12 @@ export class App extends Component {
 						</label>
 						<br />
 						<label>
+							Point ID: {location.id}{' '}
+						</label>
+						<label>
+							Data values: {location.accelerometerData.length}{' '}
+						</label>
+						<label>
 							UniqueId: {location.uniqueId}{' '}
 						</label>
 						<label>
@@ -399,6 +405,12 @@ export class App extends Component {
 							Accuracy: {location.accuracy}{' '}
 						</label>
 						<br />
+						<label>
+							Point ID: {location.id}{' '}
+						</label>
+						<label>
+							Data values: {location.accelerometerData.length}{' '}
+						</label>
 						<label>
 							UniqueId: {location.uniqueId}{' '}
 						</label>
