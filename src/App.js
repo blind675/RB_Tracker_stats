@@ -11,7 +11,7 @@ import { confirmAlert } from 'react-confirm-alert'; // Import
 import 'react-confirm-alert/src/react-confirm-alert.css';
 
 import * as firebase from 'firebase';
-import { firebaseConfig, actionsOptions, csvHeader } from './utils/constants';
+import { firebaseConfig, actionsOptions, csvHeader, newCSVRowFromLocationObject } from './utils/constants';
 
 const MyMapComponent = withScriptjs(
 	withGoogleMap(props =>
@@ -81,61 +81,13 @@ export class App extends Component {
 				console.log('error:', error);
 			});
 	}
- 
+
 	_createCSVData(data) {
 		const newCSVData = [];
 
 		data.forEach(location => {
-			if (location.label && location.accelerometerData.length > 30 ) {
-				newCSVData.push({
-					id: String(location.id),
-					x1: String(location.accelerometerData[0].x),
-					x2: String(location.accelerometerData[1].x),
-					x3: String(location.accelerometerData[2].x),
-					x4: String(location.accelerometerData[3].x),
-					x5: String(location.accelerometerData[4].x),
-					x6: String(location.accelerometerData[5].x),
-					x7: String(location.accelerometerData[6].x),
-					x8: String(location.accelerometerData[7].x),
-					x9: String(location.accelerometerData[8].x),
-					x10: String(location.accelerometerData[9].x),
-					x11: String(location.accelerometerData[10].x),
-					x12: String(location.accelerometerData[11].x),
-					x13: String(location.accelerometerData[12].x),
-					x14: String(location.accelerometerData[13].x),
-					x15: String(location.accelerometerData[14].x),
-					y1: String(location.accelerometerData[0].y),
-					y2: String(location.accelerometerData[1].y),
-					y3: String(location.accelerometerData[2].y),
-					y4: String(location.accelerometerData[3].y),
-					y5: String(location.accelerometerData[4].y),
-					y6: String(location.accelerometerData[5].y),
-					y7: String(location.accelerometerData[6].y),
-					y8: String(location.accelerometerData[7].y),
-					y9: String(location.accelerometerData[8].y),
-					y10: String(location.accelerometerData[9].y),
-					y11: String(location.accelerometerData[10].y),
-					y12: String(location.accelerometerData[11].y),
-					y13: String(location.accelerometerData[12].y),
-					y14: String(location.accelerometerData[13].y),
-					y15: String(location.accelerometerData[14].y),
-					z1: String(location.accelerometerData[0].z),
-					z2: String(location.accelerometerData[1].z),
-					z3: String(location.accelerometerData[2].z),
-					z4: String(location.accelerometerData[3].z),
-					z5: String(location.accelerometerData[4].z),
-					z6: String(location.accelerometerData[5].z),
-					z7: String(location.accelerometerData[6].z),
-					z8: String(location.accelerometerData[7].z),
-					z9: String(location.accelerometerData[8].z),
-					z10: String(location.accelerometerData[9].z),
-					z11: String(location.accelerometerData[10].z),
-					z12: String(location.accelerometerData[11].z),
-					z13: String(location.accelerometerData[12].z),
-					z14: String(location.accelerometerData[13].z),
-					z15: String(location.accelerometerData[14].z),
-					label: location.label,
-				});
+			if (location.label && location.accelerometerData.length > 30) {
+				newCSVData.push(newCSVRowFromLocationObject(location));
 			}
 		});
 
