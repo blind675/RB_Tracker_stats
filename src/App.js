@@ -256,7 +256,7 @@ export class App extends Component {
 					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/blu-stars-lv.png';
 					break;
 
-				case 'rn':
+				case 'rb':
 					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/grn-diamond-lv.png';
 					break;
 
