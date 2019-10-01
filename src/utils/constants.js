@@ -10,15 +10,11 @@ export const firebaseConfig = {
 
 export const actionsOptions = [
 	{ label: '', value: null },
+	{ label: "Don't know", value: 'unknow' },
 	{ label: 'Stay', value: 'stay' },
 	{ label: 'Walk', value: 'walk' },
-	{ label: 'Car', value: 'car' },
-	{ label: 'Bike', value: 'bike' },
-	{ label: 'e-Bike', value: 'e-bike' },
-	{ label: 'Scooter', value: 'scooter' },
-	{ label: 'e-Scooter', value: 'e-scooter' },
-	{ label: 'e-Board', value: 'rb' },
-	{ label: 'e-Board Bad Road', value: 'rb-bad' },
+	{ label: 'Good Road (e-Board/e-Scooter)', value: 'good-road' },
+	{ label: 'Bad Road (e-Board/e-Scooter)', value: 'bad-road' },
 ];
 
 export const csvHeader = [

@@ -15,7 +15,10 @@ import { firebaseConfig, actionsOptions, csvHeader, newCSVRowFromLocationObject 
 
 const MyMapComponent = withScriptjs(
 	withGoogleMap(props =>
-		<GoogleMap defaultZoom={16} defaultCenter={{ lat: 45.757855, lng: 21.228995 }}>
+		<GoogleMap 
+			defaultZoom={15} 
+			defaultCenter={{ lat: 45.757855, lng: 21.228995 }}
+			>
 			{props.isMarkerShown && props.markers}
 		</GoogleMap>
 	)
@@ -228,6 +231,10 @@ export class App extends Component {
 			var iconURL;
 
 			switch (location.label) {
+				case 'unknow':
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-stars-lv.png';
+					break;
+
 				case 'stay':
 					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-square-lv.png';
 					break;
@@ -236,32 +243,12 @@ export class App extends Component {
 					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-blank-lv.png';
 					break;
 
-				case 'car':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/wht-circle-lv.png';
+				case 'good-road':
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/grn-blank-lv.png';
 					break;
 
-				case 'bike':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/purple-circle-lv.png';
-					break;
-
-				case 'e-bike':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/purple-square-lv.png';
-					break;
-
-				case 'scooter':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/blu-circle-lv.png';
-					break;
-
-				case 'e-scooter':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/blu-stars-lv.png';
-					break;
-
-				case 'rb':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/grn-diamond-lv.png';
-					break;
-
-				case 'rb-bad':
-					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/red-diamond-lv.png';
+				case 'bad-road':
+					iconURL = 'http://maps.google.com/mapfiles/kml/paddle/red-blank-lv.png';
 					break;
 
 				default:
@@ -319,6 +306,12 @@ export class App extends Component {
 						<label>
 							Accuracy: {location.accuracy}{' '}
 						</label>
+						<label>
+							Speed: {location.speed}{' '}
+						</label>
+						<label>
+							Time: {location.time}{' '}
+						</label>
 						<br />
 						<label>
 							Point ID: {location.id}{' '}
@@ -355,6 +348,12 @@ export class App extends Component {
 						</label>
 						<label>
 							Accuracy: {location.accuracy}{' '}
+						</label>
+						<label>
+							Speed: {location.speed}{' '}
+						</label>
+						<label>
+							Time: {location.time}{' '}
 						</label>
 						<br />
 						<label>
